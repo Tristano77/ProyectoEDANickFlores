@@ -274,7 +274,7 @@ def preparar_datos_churn(df):
 # ==========================================================
 
 def home():
-    st.image("EDA.png", width=750)
+    st.image("EDA.png", width=1000)
     st.title("📊 Telco Customer Churn - Análisis Exploratorio de Datos")
 
     st.markdown("---")
