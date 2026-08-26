@@ -2237,10 +2237,354 @@ def eda():
                 )
 
     # ==========================================================
+    # ÍTEM 9 - ANÁLISIS BASADO EN PARÁMETROS SELECCIONADOS
+    # ==========================================================
+
+    with tabs[8]:
+
+        st.subheader(
+            "9. Análisis basado en parámetros seleccionados"
+        )
+
+        st.markdown(
+            """
+            Este apartado permite realizar un análisis dinámico del
+            dataset. El usuario puede seleccionar las variables que
+            desea estudiar y definir el tipo de análisis mediante los
+            controles interactivos de Streamlit.
+            """
+        )
+
+        st.divider()
+
+        # ----------------------------------------------------------
+        # Preparación de variables
+        # ----------------------------------------------------------
+
+        datos_dinamicos = df.copy()
+
+        if "TotalCharges" in datos_dinamicos.columns:
+            datos_dinamicos["TotalCharges"] = pd.to_numeric(
+                datos_dinamicos["TotalCharges"],
+                errors="coerce"
+            )
+
+        variables_numericas, variables_categoricas = (
+            clasificar_variables(datos_dinamicos)
+        )
+
+        # TotalCharges puede convertirse temporalmente en numérica
+        if (
+            "TotalCharges" in datos_dinamicos.columns
+            and "TotalCharges" not in variables_numericas
+        ):
+            if datos_dinamicos["TotalCharges"].notna().sum() > 0:
+                variables_numericas.append("TotalCharges")
+
+        # ----------------------------------------------------------
+        # Controles
+        # ----------------------------------------------------------
+
+        tipo_analisis = st.selectbox(
+            "Seleccione el tipo de análisis",
+            [
+                "Distribución numérica",
+                "Distribución categórica",
+                "Variable vs Churn"
+            ],
+            key="eda_dinamico_tipo"
+        )
+
+        if tipo_analisis == "Distribución numérica":
+
+            seleccion_dinamica = st.multiselect(
+                "Seleccione una o más variables numéricas",
+                variables_numericas,
+                default=variables_numericas[:1],
+                key="eda_dinamico_numericas"
+            )
+
+            if not seleccion_dinamica:
+
+                st.info(
+                    "Seleccione al menos una variable numérica."
+                )
+
+            else:
+
+                st.markdown(
+                    "#### 📊 Distribuciones seleccionadas"
+                )
+
+                for variable in seleccion_dinamica:
+
+                    serie = datos_dinamicos[variable].dropna()
+
+                    if serie.empty:
+                        continue
+
+                    fig, ax = plt.subplots(figsize=(9, 4))
+
+                    sns.histplot(
+                        serie,
+                        bins=30,
+                        kde=True,
+                        ax=ax
+                    )
+
+                    ax.set_title(
+                        f"Distribución de {variable}"
+                    )
+                    ax.set_xlabel(variable)
+                    ax.set_ylabel("Frecuencia")
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+
+                    c1, c2, c3 = st.columns(3)
+
+                    with c1:
+                        st.metric(
+                            "Media",
+                            f"{serie.mean():,.2f}"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Mediana",
+                            f"{serie.median():,.2f}"
+                        )
+
+                    with c3:
+                        st.metric(
+                            "Desv. estándar",
+                            f"{serie.std():,.2f}"
+                        )
+
+        elif tipo_analisis == "Distribución categórica":
+
+            seleccion_dinamica = st.multiselect(
+                "Seleccione una o más variables categóricas",
+                [
+                    col for col in variables_categoricas
+                    if col != "customerID"
+                ],
+                default=[],
+                key="eda_dinamico_categoricas"
+            )
+
+            numero_categorias = st.slider(
+                "Número máximo de categorías a mostrar",
+                min_value=2,
+                max_value=20,
+                value=10,
+                step=1,
+                key="eda_dinamico_top_categorias"
+            )
+
+            if not seleccion_dinamica:
+
+                st.info(
+                    "Seleccione al menos una variable categórica."
+                )
+
+            else:
+
+                for variable in seleccion_dinamica:
+
+                    frecuencia = (
+                        datos_dinamicos[variable]
+                        .astype("string")
+                        .fillna("Valor faltante")
+                        .value_counts()
+                        .head(numero_categorias)
+                    )
+
+                    fig, ax = plt.subplots(figsize=(9, 4))
+
+                    sns.barplot(
+                        x=frecuencia.values,
+                        y=frecuencia.index,
+                        ax=ax
+                    )
+
+                    ax.set_title(
+                        f"Top {numero_categorias} categorías de {variable}"
+                    )
+                    ax.set_xlabel("Frecuencia")
+                    ax.set_ylabel(variable)
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+
+                    tabla = pd.DataFrame({
+                        "Categoría": frecuencia.index,
+                        "Frecuencia": frecuencia.values,
+                        "Porcentaje (%)": (
+                            frecuencia.values
+                            / frecuencia.sum()
+                            * 100
+                        ).round(2)
+                    })
+
+                    st.dataframe(
+                        tabla,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+        else:
+
+            if "Churn" not in datos_dinamicos.columns:
+
+                st.error(
+                    "No se encontró la variable `Churn` en el dataset."
+                )
+
+            else:
+
+                tipo_variable = st.selectbox(
+                    "Seleccione el tipo de variable a comparar con Churn",
+                    [
+                        "Numérica",
+                        "Categórica"
+                    ],
+                    key="eda_dinamico_tipo_churn"
+                )
+
+                if tipo_variable == "Numérica":
+
+                    seleccion_dinamica = st.multiselect(
+                        "Seleccione variables numéricas",
+                        variables_numericas,
+                        default=variables_numericas[:1],
+                        key="eda_dinamico_num_churn"
+                    )
+
+                    for variable in seleccion_dinamica:
+
+                        temp = datos_dinamicos[
+                            [variable, "Churn"]
+                        ].dropna()
+
+                        fig, ax = plt.subplots(figsize=(9, 4))
+
+                        sns.boxplot(
+                            data=temp,
+                            x="Churn",
+                            y=variable,
+                            ax=ax
+                        )
+
+                        ax.set_title(
+                            f"{variable} vs Churn"
+                        )
+                        ax.set_xlabel("Churn")
+                        ax.set_ylabel(variable)
+
+                        fig.tight_layout()
+                        st.pyplot(fig)
+
+                        st.dataframe(
+                            temp.groupby("Churn")[variable]
+                            .agg(
+                                ["count", "mean", "median", "std"]
+                            )
+                            .round(2),
+                            use_container_width=True
+                        )
+
+                else:
+
+                    variables_cat_churn = [
+                        col for col in variables_categoricas
+                        if col not in ["customerID", "Churn"]
+                    ]
+
+                    seleccion_dinamica = st.multiselect(
+                        "Seleccione variables categóricas",
+                        variables_cat_churn,
+                        default=variables_cat_churn[:1],
+                        key="eda_dinamico_cat_churn"
+                    )
+
+                    for variable in seleccion_dinamica:
+
+                        temp = datos_dinamicos[
+                            [variable, "Churn"]
+                        ].copy()
+
+                        temp[variable] = (
+                            temp[variable]
+                            .astype("string")
+                            .fillna("Valor faltante")
+                        )
+
+                        tabla = pd.crosstab(
+                            temp[variable],
+                            temp["Churn"],
+                            normalize="index"
+                        ) * 100
+
+                        if "Yes" in tabla.columns:
+
+                            tasa = (
+                                tabla["Yes"]
+                                .sort_values(ascending=False)
+                            )
+
+                            fig, ax = plt.subplots(
+                                figsize=(9, 4)
+                            )
+
+                            sns.barplot(
+                                x=tasa.values,
+                                y=tasa.index,
+                                ax=ax
+                            )
+
+                            ax.set_title(
+                                f"Tasa de Churn según {variable}"
+                            )
+                            ax.set_xlabel("Churn (%)")
+                            ax.set_ylabel(variable)
+
+                            fig.tight_layout()
+                            st.pyplot(fig)
+
+                            st.dataframe(
+                                tabla.round(2),
+                                use_container_width=True
+                            )
+
+                        else:
+
+                            st.info(
+                                f"No existe la categoría "
+                                f"`Churn = Yes` para {variable}."
+                            )
+
+        st.divider()
+
+        st.markdown(
+            "#### 💡 Interpretación"
+        )
+
+        st.write(
+            """
+            El análisis dinámico permite explorar diferentes variables
+            sin modificar el código de la aplicación. La selección de
+            columnas mediante `multiselect`, el tipo de análisis mediante
+            `selectbox` y el número de categorías mediante `slider`
+            permiten adaptar el EDA a diferentes preguntas analíticas.
+            """
+        )
+
+    # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
-    # Los siguientes tabs se implementarán progresivamente.
+    # El Ítem 10 se desarrollará como resumen final de los hallazgos.
 
 
 
