@@ -2581,10 +2581,324 @@ def eda():
         )
 
     # ==========================================================
-    # ÍTEMS PENDIENTES
+    # ÍTEM 10 - HALLAZGOS CLAVE
     # ==========================================================
 
-    # El Ítem 10 se desarrollará como resumen final de los hallazgos.
+    with tabs[9]:
+
+        st.subheader("10. Hallazgos clave del análisis exploratorio")
+
+        st.markdown(
+            """
+            Esta sección resume los principales hallazgos obtenidos
+            durante el análisis exploratorio de datos, priorizando
+            aquellos relacionados con **Churn**.
+            """
+        )
+
+        st.divider()
+
+        if "Churn" not in df.columns:
+
+            st.error(
+                "No se encontró la variable `Churn`. "
+                "No es posible generar los hallazgos asociados al abandono."
+            )
+
+        else:
+
+            datos_hallazgos = df.copy()
+
+            # Conversión temporal de TotalCharges
+            if "TotalCharges" in datos_hallazgos.columns:
+                datos_hallazgos["TotalCharges"] = pd.to_numeric(
+                    datos_hallazgos["TotalCharges"],
+                    errors="coerce"
+                )
+
+            # --------------------------------------------------
+            # 1. Tasa general de Churn
+            # --------------------------------------------------
+
+            churn_counts = (
+                datos_hallazgos["Churn"]
+                .astype("string")
+                .value_counts(dropna=False)
+            )
+
+            total_clientes = len(datos_hallazgos)
+
+            churn_yes = int(churn_counts.get("Yes", 0))
+            churn_no = int(churn_counts.get("No", 0))
+
+            tasa_churn = (
+                churn_yes / total_clientes * 100
+                if total_clientes > 0
+                else 0
+            )
+
+            st.markdown("#### 📌 Indicadores principales")
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric(
+                    "Total de clientes",
+                    f"{total_clientes:,}"
+                )
+
+            with c2:
+                st.metric(
+                    "Clientes con Churn",
+                    f"{churn_yes:,}"
+                )
+
+            with c3:
+                st.metric(
+                    "Tasa global de Churn",
+                    f"{tasa_churn:.2f}%"
+                )
+
+            st.divider()
+
+            # --------------------------------------------------
+            # 2. Visualización resumen de Churn
+            # --------------------------------------------------
+
+            st.markdown("#### 📊 Visualización resumen")
+
+            fig, ax = plt.subplots(figsize=(8, 5))
+
+            etiquetas = ["Churn = No", "Churn = Yes"]
+            valores = [churn_no, churn_yes]
+
+            sns.barplot(
+                x=etiquetas,
+                y=valores,
+                ax=ax
+            )
+
+            ax.set_title("Distribución global de Churn")
+            ax.set_xlabel("Condición")
+            ax.set_ylabel("Cantidad de clientes")
+
+            for i, valor in enumerate(valores):
+                ax.text(
+                    i,
+                    valor,
+                    f"{valor:,}",
+                    ha="center",
+                    va="bottom"
+                )
+
+            fig.tight_layout()
+            st.pyplot(fig)
+
+            st.divider()
+
+            # --------------------------------------------------
+            # 3. Hallazgos de variables numéricas
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 🔢 Hallazgos en variables numéricas"
+            )
+
+            numericas_hallazgos = datos_hallazgos.select_dtypes(
+                include=np.number
+            ).columns.tolist()
+
+            resumen_numerico = []
+
+            if "Churn" in datos_hallazgos.columns:
+
+                for variable in numericas_hallazgos:
+
+                    temp = datos_hallazgos[
+                        [variable, "Churn"]
+                    ].dropna()
+
+                    medias = temp.groupby("Churn")[variable].mean()
+
+                    if "Yes" in medias.index and "No" in medias.index:
+
+                        media_no = medias["No"]
+                        media_yes = medias["Yes"]
+
+                        diferencia = media_yes - media_no
+
+                        resumen_numerico.append({
+                            "Variable": variable,
+                            "Media Churn = No": media_no,
+                            "Media Churn = Yes": media_yes,
+                            "Diferencia": diferencia
+                        })
+
+            if resumen_numerico:
+
+                resumen_numerico = pd.DataFrame(
+                    resumen_numerico
+                )
+
+                resumen_numerico["Diferencia absoluta"] = (
+                    resumen_numerico["Diferencia"].abs()
+                )
+
+                resumen_numerico = resumen_numerico.sort_values(
+                    "Diferencia absoluta",
+                    ascending=False
+                )
+
+                st.dataframe(
+                    resumen_numerico.drop(
+                        columns=["Diferencia absoluta"]
+                    ).round(2),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                principal_num = resumen_numerico.iloc[0]
+
+                st.write(
+                    f"Entre las variables numéricas analizadas, "
+                    f"**{principal_num['Variable']}** presenta la mayor "
+                    f"diferencia absoluta de medias entre clientes con "
+                    f"y sin Churn: "
+                    f"**{abs(principal_num['Diferencia']):,.2f}**."
+                )
+
+            else:
+
+                st.info(
+                    "No fue posible calcular diferencias de medias "
+                    "para las variables numéricas."
+                )
+
+            st.divider()
+
+            # --------------------------------------------------
+            # 4. Hallazgos de variables categóricas
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 🏷️ Hallazgos en variables categóricas"
+            )
+
+            _, categoricas_hallazgos = clasificar_variables(
+                datos_hallazgos
+            )
+
+            categoricas_hallazgos = [
+                col for col in categoricas_hallazgos
+                if col not in ["customerID", "Churn"]
+            ]
+
+            resumen_categorico = []
+
+            for variable in categoricas_hallazgos:
+
+                temp = datos_hallazgos[
+                    [variable, "Churn"]
+                ].copy()
+
+                temp[variable] = (
+                    temp[variable]
+                    .astype("string")
+                    .fillna("Valor faltante")
+                )
+
+                temp["Churn"] = (
+                    temp["Churn"]
+                    .astype("string")
+                    .fillna("Valor faltante")
+                )
+
+                tabla = pd.crosstab(
+                    temp[variable],
+                    temp["Churn"],
+                    normalize="index"
+                ) * 100
+
+                if "Yes" in tabla.columns and len(tabla) > 0:
+
+                    categoria = tabla["Yes"].idxmax()
+                    tasa = tabla["Yes"].max()
+
+                    resumen_categorico.append({
+                        "Variable": variable,
+                        "Categoría": str(categoria),
+                        "Tasa Churn (%)": tasa
+                    })
+
+            if resumen_categorico:
+
+                resumen_categorico = pd.DataFrame(
+                    resumen_categorico
+                ).sort_values(
+                    "Tasa Churn (%)",
+                    ascending=False
+                )
+
+                st.dataframe(
+                    resumen_categorico.round(2),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                principal_cat = resumen_categorico.iloc[0]
+
+                st.write(
+                    f"La combinación categórica con mayor tasa de "
+                    f"abandono encontrada en el análisis corresponde a "
+                    f"**{principal_cat['Variable']} = "
+                    f"{principal_cat['Categoría']}**, con una tasa de "
+                    f"Churn de **{principal_cat['Tasa Churn (%)']:.2f}%**."
+                )
+
+            else:
+
+                st.info(
+                    "No fue posible calcular tasas de Churn para "
+                    "las variables categóricas."
+                )
+
+            st.divider()
+
+            # --------------------------------------------------
+            # 5. Resumen ejecutivo
+            # --------------------------------------------------
+
+            st.markdown("#### 💡 Resumen ejecutivo")
+
+            st.write(
+                f"""
+                El dataset contiene **{total_clientes:,} clientes**,
+                de los cuales **{churn_yes:,} presentan Churn**, lo que
+                representa una tasa global de abandono de
+                **{tasa_churn:.2f}%**.
+
+                Los análisis univariados permitieron caracterizar las
+                distribuciones y categorías del dataset, mientras que
+                los análisis bivariados permitieron comparar el
+                comportamiento de los clientes según su condición de
+                Churn.
+                """
+            )
+
+            st.warning(
+                """
+                Los hallazgos de esta sección son de carácter
+                **exploratorio y descriptivo**. No deben interpretarse
+                como relaciones causales ni como evidencia de
+                significancia estadística. Para validar asociaciones
+                sería necesario complementar el EDA con pruebas
+                estadísticas y, posteriormente, modelos predictivos.
+                """
+            )
+
+    # ==========================================================
+    # FIN DEL EDA
+    # ==========================================================
 
 
 
