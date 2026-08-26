@@ -172,6 +172,58 @@ def calcular_estadisticas_descriptivas(df):
     return estadisticas
 
 
+
+def analizar_valores_faltantes(df):
+    """
+    Analiza valores faltantes del DataFrame.
+
+    Considera:
+    1. Valores nulos detectados por Pandas.
+    2. Cadenas vacías.
+    3. Cadenas compuestas únicamente por espacios.
+
+    Retorna una tabla resumen por variable.
+    """
+
+    nulos_pandas = df.isna().sum()
+
+    vacios = pd.Series(0, index=df.columns, dtype="int64")
+    espacios = pd.Series(0, index=df.columns, dtype="int64")
+
+    for columna in df.select_dtypes(include=["object", "category"]).columns:
+        serie = df[columna].astype("string")
+
+        vacios[columna] = (
+            serie.eq("").fillna(False).sum()
+        )
+
+        espacios[columna] = (
+            serie.str.strip().eq("").fillna(False).sum()
+            - vacios[columna]
+        )
+
+    resumen = pd.DataFrame({
+        "Variable": df.columns,
+        "Nulos (NaN)": nulos_pandas.values,
+        "Cadenas vacías": vacios.values,
+        "Solo espacios": espacios.values
+    })
+
+    resumen["Total faltantes detectados"] = (
+        resumen["Nulos (NaN)"]
+        + resumen["Cadenas vacías"]
+        + resumen["Solo espacios"]
+    )
+
+    resumen["Porcentaje (%)"] = (
+        resumen["Total faltantes detectados"]
+        / len(df)
+        * 100
+    ).round(2)
+
+    return resumen
+
+
 # ==========================================================
 # MÓDULO 1 - HOME
 # ==========================================================
@@ -872,11 +924,264 @@ def eda():
             st.pyplot(fig)
 
     # ==========================================================
+    # ÍTEM 4 - VALORES FALTANTES
+    # ==========================================================
+
+    with tabs[3]:
+
+        st.subheader("4. Análisis de valores faltantes")
+
+        st.markdown(
+            """
+            En esta etapa se identifican los valores faltantes del
+            dataset y se calcula su proporción respecto al total de
+            registros.
+
+            Además de los valores `NaN` detectados directamente por
+            Pandas, se revisan cadenas vacías y cadenas que contienen
+            únicamente espacios, ya que pueden representar valores
+            faltantes encubiertos.
+            """
+        )
+
+        st.divider()
+
+        resumen_faltantes = analizar_valores_faltantes(df)
+
+        total_nulos = int(
+            resumen_faltantes["Nulos (NaN)"].sum()
+        )
+
+        total_vacios = int(
+            resumen_faltantes["Cadenas vacías"].sum()
+        )
+
+        total_espacios = int(
+            resumen_faltantes["Solo espacios"].sum()
+        )
+
+        total_faltantes = int(
+            resumen_faltantes["Total faltantes detectados"].sum()
+        )
+
+        # ------------------------------------------------------
+        # Métricas
+        # ------------------------------------------------------
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+            st.metric(
+                "Nulos (NaN)",
+                f"{total_nulos:,}"
+            )
+
+        with c2:
+            st.metric(
+                "Cadenas vacías",
+                f"{total_vacios:,}"
+            )
+
+        with c3:
+            st.metric(
+                "Solo espacios",
+                f"{total_espacios:,}"
+            )
+
+        with c4:
+            st.metric(
+                "Total detectado",
+                f"{total_faltantes:,}"
+            )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Tabla completa
+        # ------------------------------------------------------
+
+        st.markdown(
+            "#### 📋 Detalle de valores faltantes por variable"
+        )
+
+        st.dataframe(
+            resumen_faltantes.sort_values(
+                "Total faltantes detectados",
+                ascending=False
+            ),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Variables afectadas
+        # ------------------------------------------------------
+
+        afectadas = resumen_faltantes[
+            resumen_faltantes["Total faltantes detectados"] > 0
+        ].copy()
+
+        if afectadas.empty:
+
+            st.success(
+                "✅ No se encontraron valores faltantes ni cadenas "
+                "vacías en las variables analizadas."
+            )
+
+        else:
+
+            st.markdown(
+                "#### ⚠️ Variables con valores faltantes"
+            )
+
+            st.write(
+                f"Se encontraron **{len(afectadas)} variables** "
+                "con algún tipo de valor faltante."
+            )
+
+            # --------------------------------------------------
+            # Gráfico
+            # --------------------------------------------------
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+
+            ax.bar(
+                afectadas["Variable"],
+                afectadas["Total faltantes detectados"]
+            )
+
+            ax.set_title(
+                "Valores faltantes por variable"
+            )
+            ax.set_xlabel("Variable")
+            ax.set_ylabel("Cantidad")
+
+            plt.xticks(
+                rotation=45,
+                ha="right"
+            )
+
+            fig.tight_layout()
+
+            st.pyplot(fig)
+
+            # --------------------------------------------------
+            # Porcentaje
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 📊 Porcentaje de faltantes"
+            )
+
+            fig2, ax2 = plt.subplots(figsize=(10, 5))
+
+            ax2.bar(
+                afectadas["Variable"],
+                afectadas["Porcentaje (%)"]
+            )
+
+            ax2.set_title(
+                "Porcentaje de registros faltantes por variable"
+            )
+            ax2.set_xlabel("Variable")
+            ax2.set_ylabel("Porcentaje (%)")
+
+            plt.xticks(
+                rotation=45,
+                ha="right"
+            )
+
+            fig2.tight_layout()
+
+            st.pyplot(fig2)
+
+            st.divider()
+
+            # --------------------------------------------------
+            # Interpretación
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 💡 Interpretación"
+            )
+
+            variable_mayor = afectadas.loc[
+                afectadas["Total faltantes detectados"].idxmax()
+            ]
+
+            st.write(
+                f"La variable con mayor cantidad de valores "
+                f"faltantes detectados es **"
+                f"{variable_mayor['Variable']}**, con "
+                f"**{int(variable_mayor['Total faltantes detectados']):,} "
+                f"registros**, equivalentes al "
+                f"**{variable_mayor['Porcentaje (%)']:.2f}%** "
+                "de sus observaciones."
+            )
+
+            if total_nulos > 0:
+                st.info(
+                    "Los valores `NaN` son reconocidos directamente "
+                    "por Pandas y deberán evaluarse antes de aplicar "
+                    "estadísticas o visualizaciones que dependan de "
+                    "la variable afectada."
+                )
+
+            if total_vacios + total_espacios > 0:
+                st.warning(
+                    "También se detectaron valores faltantes "
+                    "representados mediante texto vacío o espacios. "
+                    "Estos valores deben normalizarse durante la "
+                    "etapa de limpieza."
+                )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Control opcional para revisar registros
+        # ------------------------------------------------------
+
+        revisar = st.checkbox(
+            "Mostrar registros que contienen valores faltantes"
+        )
+
+        if revisar:
+
+            mascara = df.isna().any(axis=1)
+
+            # Incorporar cadenas vacías / espacios en columnas de texto
+            for columna in df.select_dtypes(
+                include=["object", "category"]
+            ).columns:
+
+                serie = df[columna].astype("string")
+
+                mascara = (
+                    mascara
+                    | serie.eq("").fillna(False)
+                    | serie.str.strip().eq("").fillna(False)
+                )
+
+            registros_faltantes = df.loc[mascara]
+
+            st.write(
+                f"Registros encontrados: "
+                f"**{len(registros_faltantes):,}**"
+            )
+
+            st.dataframe(
+                registros_faltantes,
+                use_container_width=True,
+                hide_index=True
+            )
+
+    # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
     nombres_pendientes = [
-        "Análisis de valores faltantes",
         "Distribución de variables numéricas",
         "Análisis de variables categóricas",
         "Análisis bivariado: numérico vs Churn",
@@ -885,10 +1190,10 @@ def eda():
         "Hallazgos clave"
     ]
 
-    for i in range(3, 10):
+    for i in range(4, 10):
         with tabs[i]:
             st.subheader(
-                f"{i + 1}. {nombres_pendientes[i - 3]}"
+                f"{i + 1}. {nombres_pendientes[i - 4]}"
             )
             st.info(
                 "Este ítem se implementará en el siguiente paso."
