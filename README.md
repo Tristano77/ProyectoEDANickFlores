@@ -78,41 +78,40 @@ Los resultados del EDA son **descriptivos y exploratorios**. Las diferencias obs
 
 ### Pantalla principal
 
-![Pantalla principal](screenshots/home.png)
+![Pantalla principal](capturas/home.png)
 
 ### Información general y clasificación de variables
 
-![Información general](screenshots/informacion_general.png)
+![Información general](capturas/informacion_general.png)
 
 ### Estadísticas descriptivas
 
-![Estadísticas descriptivas](screenshots/estadisticas_descriptivas.png)
+![Estadísticas descriptivas](capturas/estadisticas_descriptivas.png)
 
 ### Valores faltantes
 
-![Valores faltantes](screenshots/valores_faltantes.png)
+![Valores faltantes](capturas/valores_faltantes.png)
 
 ### Distribuciones numéricas
 
-![Distribuciones numéricas](screenshots/distribuciones_numericas.png)
+![Distribuciones numéricas](capturas/distribuciones_numericas.png)
 
 ### Análisis numérico vs Churn
 
-![Numérica vs Churn](screenshots/numerica_vs_churn.png)
+![Numérica vs Churn](capturas/numerica_vs_churn.png)
 
 ### Análisis categórico vs Churn
 
-![Categórica vs Churn](screenshots/categorica_vs_churn.png)
+![Categórica vs Churn](capturas/categorica_vs_churn.png)
 
 ### Análisis dinámico
 
-![Análisis dinámico](screenshots/analisis_dinamico.png)
+![Análisis dinámico](capturas/analisis_dinamico.png)
 
 ### Hallazgos clave
 
-![Hallazgos clave](screenshots/hallazgos.png)
+![Hallazgos clave](capturas/hallazgos.png)
 
-**Para agregar las capturas:** crear una carpeta `screenshots/` en el repositorio y colocar allí las imágenes con los nombres indicados arriba.
 
 ---
 
@@ -210,13 +209,6 @@ Para publicar la aplicación:
 - [Conceptos básicos de Streamlit](https://docs.streamlit.io/get-started/fundamentals/main-concepts)
 - [Referencia de comandos CLI de Streamlit](https://docs.streamlit.io/develop/api-reference/cli)
 
-### Proyecto
-
-- **Repositorio GitHub:** `<URL_DEL_REPOSITORIO>`
-- **Aplicación desplegada:** `<URL_DE_STREAMLIT_CLOUD>`
-
-> Reemplazar los dos enlaces anteriores con las URLs reales del repositorio y de la aplicación antes de entregar el proyecto.
-
 ---
 
 ## Tecnologías utilizadas
@@ -258,4 +250,4 @@ proyecto/
 
 **Proyecto de Análisis Exploratorio de Datos — Churn**
 
-Desarrollado con Python y Streamlit.
+Desarrollado con Python y Streamlit por Nick Flores.
