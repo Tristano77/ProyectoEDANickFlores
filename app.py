@@ -1936,6 +1936,307 @@ def eda():
                 )
 
     # ==========================================================
+    # ÍTEM 8 - ANÁLISIS BIVARIADO: CATEGÓRICA VS CHURN
+    # ==========================================================
+
+    with tabs[7]:
+
+        st.subheader(
+            "8. Análisis bivariado: variables categóricas vs Churn"
+        )
+
+        st.markdown(
+            """
+            En este apartado se analiza la relación entre las variables
+            categóricas y **Churn**. Se utilizan frecuencias, porcentajes
+            y gráficos para comparar la proporción de abandono entre
+            las diferentes categorías.
+            """
+        )
+
+        st.divider()
+
+        if "Churn" not in df.columns:
+
+            st.error(
+                "No se encontró la variable objetivo `Churn` en el dataset."
+            )
+
+        else:
+
+            _, categoricas = clasificar_variables(df)
+
+            categoricas_churn = [
+                col for col in categoricas
+                if col not in ["customerID", "Churn"]
+            ]
+
+            if not categoricas_churn:
+
+                st.warning(
+                    "No se encontraron variables categóricas disponibles "
+                    "para analizar frente a Churn."
+                )
+
+            else:
+
+                variable_cat = st.selectbox(
+                    "Seleccione una variable categórica",
+                    categoricas_churn,
+                    key="eda_bivariado_categorica_churn"
+                )
+
+                datos_bivariado = df[
+                    [variable_cat, "Churn"]
+                ].copy()
+
+                datos_bivariado[variable_cat] = (
+                    datos_bivariado[variable_cat]
+                    .astype("string")
+                    .fillna("Valor faltante")
+                )
+
+                datos_bivariado["Churn"] = (
+                    datos_bivariado["Churn"]
+                    .astype("string")
+                    .fillna("Valor faltante")
+                )
+
+                # --------------------------------------------------
+                # Tabla de contingencia
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📋 Tabla de frecuencias por Churn"
+                )
+
+                tabla_frecuencia = pd.crosstab(
+                    datos_bivariado[variable_cat],
+                    datos_bivariado["Churn"]
+                )
+
+                st.dataframe(
+                    tabla_frecuencia,
+                    use_container_width=True
+                )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Porcentaje de Churn dentro de cada categoría
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📊 Porcentaje de Churn por categoría"
+                )
+
+                tabla_porcentaje = pd.crosstab(
+                    datos_bivariado[variable_cat],
+                    datos_bivariado["Churn"],
+                    normalize="index"
+                ) * 100
+
+                tabla_porcentaje = tabla_porcentaje.round(2)
+
+                st.dataframe(
+                    tabla_porcentaje,
+                    use_container_width=True
+                )
+
+                # --------------------------------------------------
+                # Gráfico de proporciones
+                # --------------------------------------------------
+
+                if "Yes" in tabla_porcentaje.columns:
+
+                    st.markdown(
+                        "#### 📈 Tasa de abandono por categoría"
+                    )
+
+                    tasa_churn = (
+                        tabla_porcentaje["Yes"]
+                        .sort_values(ascending=False)
+                    )
+
+                    fig, ax = plt.subplots(
+                        figsize=(10, 5)
+                    )
+
+                    sns.barplot(
+                        x=tasa_churn.values,
+                        y=tasa_churn.index,
+                        ax=ax
+                    )
+
+                    ax.set_title(
+                        f"Tasa de Churn según {variable_cat}"
+                    )
+                    ax.set_xlabel("Churn (%)")
+                    ax.set_ylabel(variable_cat)
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+
+                    st.divider()
+
+                    # --------------------------------------------------
+                    # Categoría con mayor y menor Churn
+                    # --------------------------------------------------
+
+                    categoria_mayor = tasa_churn.idxmax()
+                    valor_mayor = tasa_churn.max()
+
+                    categoria_menor = tasa_churn.idxmin()
+                    valor_menor = tasa_churn.min()
+
+                    c1, c2 = st.columns(2)
+
+                    with c1:
+                        st.metric(
+                            "Mayor tasa de Churn",
+                            f"{valor_mayor:.2f}%"
+                        )
+                        st.write(
+                            f"Categoría: **{categoria_mayor}**"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Menor tasa de Churn",
+                            f"{valor_menor:.2f}%"
+                        )
+                        st.write(
+                            f"Categoría: **{categoria_menor}**"
+                        )
+
+                    diferencia = valor_mayor - valor_menor
+
+                    st.write(
+                        f"La diferencia entre la categoría con mayor "
+                        f"y menor tasa de abandono es de "
+                        f"**{diferencia:.2f} puntos porcentuales**."
+                    )
+
+                else:
+
+                    st.info(
+                        "No existe la categoría `Churn = Yes` en los "
+                        "datos seleccionados, por lo que no es posible "
+                        "calcular una tasa de abandono."
+                    )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Distribución de Churn dentro de cada categoría
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📊 Distribución de Churn"
+                )
+
+                fig2, ax2 = plt.subplots(
+                    figsize=(10, 5)
+                )
+
+                sns.countplot(
+                    data=datos_bivariado,
+                    x=variable_cat,
+                    hue="Churn",
+                    ax=ax2
+                )
+
+                ax2.set_title(
+                    f"Distribución de Churn según {variable_cat}"
+                )
+                ax2.set_xlabel(variable_cat)
+                ax2.set_ylabel("Cantidad")
+
+                plt.xticks(
+                    rotation=45,
+                    ha="right"
+                )
+
+                fig2.tight_layout()
+                st.pyplot(fig2)
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Resumen de todas las variables categóricas
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 🔎 Resumen de Churn por variables categóricas"
+                )
+
+                resumen_categorico = []
+
+                for variable in categoricas_churn:
+
+                    temp = df[
+                        [variable, "Churn"]
+                    ].copy()
+
+                    temp[variable] = (
+                        temp[variable]
+                        .astype("string")
+                        .fillna("Valor faltante")
+                    )
+
+                    temp["Churn"] = (
+                        temp["Churn"]
+                        .astype("string")
+                        .fillna("Valor faltante")
+                    )
+
+                    tabla = pd.crosstab(
+                        temp[variable],
+                        temp["Churn"],
+                        normalize="index"
+                    ) * 100
+
+                    if "Yes" in tabla.columns and len(tabla) > 0:
+
+                        mayor = tabla["Yes"].idxmax()
+
+                        resumen_categorico.append({
+                            "Variable": variable,
+                            "Categoría con mayor Churn": str(mayor),
+                            "Mayor tasa Churn (%)": (
+                                tabla["Yes"].max()
+                            )
+                        })
+
+                if resumen_categorico:
+
+                    resumen_categorico = pd.DataFrame(
+                        resumen_categorico
+                    ).sort_values(
+                        "Mayor tasa Churn (%)",
+                        ascending=False
+                    )
+
+                    resumen_categorico[
+                        "Mayor tasa Churn (%)"
+                    ] = resumen_categorico[
+                        "Mayor tasa Churn (%)"
+                    ].round(2)
+
+                    st.dataframe(
+                        resumen_categorico,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                st.info(
+                    "⚠️ Las diferencias observadas son descriptivas. "
+                    "Para afirmar que existe una asociación estadísticamente "
+                    "significativa sería necesario aplicar una prueba "
+                    "estadística, como chi-cuadrado."
+                )
+
+    # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
