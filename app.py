@@ -37,6 +37,8 @@ st.sidebar.markdown("---")
 st.sidebar.info(
     "Proyecto aplicado de Análisis Exploratorio de Datos (EDA)"
 )
+st.sidebar.success("Python • NumPy • Pandas • Matplotlib • Streamlit • Seaborn")
+
 
 
 # ==========================================================
