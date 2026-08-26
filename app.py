@@ -2830,7 +2830,7 @@ def eda():
                         "Tasa Churn (%)": tasa
                     })
 
-            if not resumen_categorico.empty:
+            if len(resumen_categorico) > 0:
 
                 resumen_categorico = pd.DataFrame(
                     resumen_categorico
@@ -2882,7 +2882,7 @@ def eda():
                 """
             )
 
-            if not resumen_categorico.empty:
+            if len(resumen_categorico) > 0:
 
                 principal_cat = resumen_categorico.iloc[0]
 
@@ -2913,7 +2913,7 @@ def eda():
                     """
                 )
 
-            if not resumen_numerico.empty:
+            if len(resumen_numerico) > 0:
 
                 principal_num = resumen_numerico.iloc[0]
 
