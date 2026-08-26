@@ -2208,7 +2208,7 @@ def eda():
                             )
                         })
 
-                if resumen_categorico:
+                if not resumen_categorico.empty:
 
                     resumen_categorico = pd.DataFrame(
                         resumen_categorico
@@ -2734,7 +2734,7 @@ def eda():
                             "Diferencia": diferencia
                         })
 
-            if resumen_numerico:
+            if not resumen_numerico.empty:
 
                 resumen_numerico = pd.DataFrame(
                     resumen_numerico
@@ -2830,7 +2830,7 @@ def eda():
                         "Tasa Churn (%)": tasa
                     })
 
-            if resumen_categorico:
+            if not resumen_categorico.empty:
 
                 resumen_categorico = pd.DataFrame(
                     resumen_categorico
@@ -2882,7 +2882,7 @@ def eda():
                 """
             )
 
-            if resumen_categorico:
+            if not resumen_categorico.empty:
 
                 principal_cat = resumen_categorico.iloc[0]
 
@@ -2913,7 +2913,7 @@ def eda():
                     """
                 )
 
-            if resumen_numerico:
+            if not resumen_numerico.empty:
 
                 principal_num = resumen_numerico.iloc[0]
 
