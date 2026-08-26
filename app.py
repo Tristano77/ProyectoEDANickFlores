@@ -2868,7 +2868,7 @@ def eda():
             # 5. Resumen ejecutivo
             # --------------------------------------------------
 
-            st.markdown("#### 🎯 5 conclusiones para la toma de decisiones")
+            st.markdown("#### 🎯 Conclusiones para la toma de decisiones")
 
             st.markdown(
                 f"""
@@ -3000,7 +3000,7 @@ def conclusiones():
         return
 
     st.info(
-        "Las cinco conclusiones finales se generarán a partir de "
+        "Las conclusiones finales se generarán a partir de "
         "los hallazgos obtenidos durante el EDA."
     )
 
