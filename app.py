@@ -128,6 +128,50 @@ def clasificar_variables(df):
     return numericas, categoricas
 
 
+
+def calcular_estadisticas_descriptivas(df):
+    """
+    Calcula estadísticas descriptivas para las variables numéricas.
+
+    Incluye:
+    - Conteo
+    - Media
+    - Mediana
+    - Moda
+    - Desviación estándar
+    - Mínimo
+    - Cuartiles
+    - Máximo
+    """
+
+    numericas = df.select_dtypes(include=np.number).columns.tolist()
+
+    if not numericas:
+        return pd.DataFrame()
+
+    estadisticas = pd.DataFrame(index=numericas)
+
+    estadisticas["count"] = df[numericas].count()
+    estadisticas["media"] = df[numericas].mean()
+    estadisticas["mediana"] = df[numericas].median()
+    estadisticas["moda"] = df[numericas].mode().iloc[0]
+    estadisticas["desv. estándar"] = df[numericas].std()
+    estadisticas["mínimo"] = df[numericas].min()
+    estadisticas["Q1 (25%)"] = df[numericas].quantile(0.25)
+    estadisticas["Q3 (75%)"] = df[numericas].quantile(0.75)
+    estadisticas["máximo"] = df[numericas].max()
+
+    estadisticas["rango"] = (
+        estadisticas["máximo"] - estadisticas["mínimo"]
+    )
+
+    estadisticas["IQR"] = (
+        estadisticas["Q3 (75%)"] - estadisticas["Q1 (25%)"]
+    )
+
+    return estadisticas
+
+
 # ==========================================================
 # MÓDULO 1 - HOME
 # ==========================================================
@@ -608,11 +652,230 @@ def eda():
             )
 
     # ==========================================================
+    # ÍTEMS 3 AL 10
+    # ==========================================================
+
+    with tabs[2]:
+
+        st.subheader("3. Estadísticas descriptivas")
+
+        st.markdown(
+            """
+            Las estadísticas descriptivas permiten resumir el
+            comportamiento de las variables numéricas del dataset.
+
+            Se analizarán principalmente la **media, mediana, moda,
+            dispersión, valores mínimos y máximos**, además de los
+            cuartiles.
+            """
+        )
+
+        st.divider()
+
+        estadisticas = calcular_estadisticas_descriptivas(df)
+
+        if estadisticas.empty:
+
+            st.warning(
+                "No se encontraron variables numéricas para "
+                "calcular estadísticas descriptivas."
+            )
+
+        else:
+
+            # ------------------------------------------------------
+            # Tabla equivalente a describe() ampliada
+            # ------------------------------------------------------
+
+            st.markdown(
+                "#### 📊 Resumen estadístico"
+            )
+
+            st.dataframe(
+                estadisticas.round(2),
+                use_container_width=True
+            )
+
+            st.caption(
+                "La tabla amplía la información de "
+                "`df.describe()` incorporando también la moda, "
+                "el rango y el IQR."
+            )
+
+            st.divider()
+
+            # ------------------------------------------------------
+            # Métricas generales
+            # ------------------------------------------------------
+
+            st.markdown(
+                "#### 📌 Variables numéricas disponibles"
+            )
+
+            variables_numericas = estadisticas.index.tolist()
+
+            seleccion = st.selectbox(
+                "Seleccione una variable para analizar",
+                variables_numericas
+            )
+
+            serie = df[seleccion].dropna()
+
+            media = serie.mean()
+            mediana = serie.median()
+            moda = serie.mode()
+
+            if len(moda) > 0:
+                moda_valor = moda.iloc[0]
+            else:
+                moda_valor = np.nan
+
+            desviacion = serie.std()
+            minimo = serie.min()
+            maximo = serie.max()
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric(
+                    "Media",
+                    f"{media:,.2f}"
+                )
+
+            with c2:
+                st.metric(
+                    "Mediana",
+                    f"{mediana:,.2f}"
+                )
+
+            with c3:
+                st.metric(
+                    "Moda",
+                    f"{moda_valor:,.2f}"
+                )
+
+            c4, c5, c6 = st.columns(3)
+
+            with c4:
+                st.metric(
+                    "Desviación estándar",
+                    f"{desviacion:,.2f}"
+                )
+
+            with c5:
+                st.metric(
+                    "Mínimo",
+                    f"{minimo:,.2f}"
+                )
+
+            with c6:
+                st.metric(
+                    "Máximo",
+                    f"{maximo:,.2f}"
+                )
+
+            st.divider()
+
+            # ------------------------------------------------------
+            # Interpretación
+            # ------------------------------------------------------
+
+            st.markdown(
+                "#### 💡 Interpretación básica"
+            )
+
+            diferencia = abs(media - mediana)
+
+            if media > mediana:
+                tendencia = (
+                    "La media es superior a la mediana, lo que puede "
+                    "indicar una distribución con mayor concentración "
+                    "de valores hacia la derecha."
+                )
+            elif media < mediana:
+                tendencia = (
+                    "La media es inferior a la mediana, lo que puede "
+                    "indicar una distribución con mayor concentración "
+                    "de valores hacia la izquierda."
+                )
+            else:
+                tendencia = (
+                    "La media y la mediana son prácticamente iguales, "
+                    "lo que sugiere una distribución relativamente "
+                    "centrada alrededor de su valor central."
+                )
+
+            st.write(
+                f"Para **{seleccion}**, la media es "
+                f"**{media:,.2f}**, mientras que la mediana es "
+                f"**{mediana:,.2f}**."
+            )
+
+            st.write(tendencia)
+
+            st.write(
+                f"La desviación estándar es **{desviacion:,.2f}**, "
+                f"por lo que existe una dispersión de los valores "
+                f"alrededor de la media. El rango observado va desde "
+                f"**{minimo:,.2f}** hasta **{maximo:,.2f}**."
+            )
+
+            if diferencia > 0:
+                st.info(
+                    "La diferencia entre media y mediana debe "
+                    "interpretarse junto con la distribución gráfica "
+                    "de la variable; por sí sola no demuestra la "
+                    "existencia de valores atípicos."
+                )
+
+            st.divider()
+
+            # ------------------------------------------------------
+            # Distribución de la variable seleccionada
+            # ------------------------------------------------------
+
+            st.markdown(
+                "#### 📈 Distribución de la variable seleccionada"
+            )
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+
+            ax.hist(
+                serie,
+                bins=30,
+                edgecolor="black"
+            )
+
+            ax.axvline(
+                media,
+                linestyle="--",
+                linewidth=2,
+                label=f"Media: {media:,.2f}"
+            )
+
+            ax.axvline(
+                mediana,
+                linestyle=":",
+                linewidth=2,
+                label=f"Mediana: {mediana:,.2f}"
+            )
+
+            ax.set_title(
+                f"Distribución de {seleccion}"
+            )
+            ax.set_xlabel(seleccion)
+            ax.set_ylabel("Frecuencia")
+            ax.legend()
+
+            fig.tight_layout()
+
+            st.pyplot(fig)
+
+    # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
     nombres_pendientes = [
-        "Estadísticas descriptivas",
         "Análisis de valores faltantes",
         "Distribución de variables numéricas",
         "Análisis de variables categóricas",
@@ -622,14 +885,15 @@ def eda():
         "Hallazgos clave"
     ]
 
-    for i in range(2, 10):
+    for i in range(3, 10):
         with tabs[i]:
             st.subheader(
-                f"{i + 1}. {nombres_pendientes[i - 2]}"
+                f"{i + 1}. {nombres_pendientes[i - 3]}"
             )
             st.info(
                 "Este ítem se implementará en el siguiente paso."
             )
+
 
 
 # ==========================================================
