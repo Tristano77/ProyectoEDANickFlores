@@ -2983,28 +2983,6 @@ def eda():
     # FIN DEL EDA
     # ==========================================================
 
-
-
-# ==========================================================
-# MÓDULO 4 - CONCLUSIONES
-# ==========================================================
-
-def conclusiones():
-
-    st.title("📝 Conclusiones")
-
-    if st.session_state.df_telco is None:
-        st.warning(
-            "Primero debe cargar el dataset y completar el EDA."
-        )
-        return
-
-    st.info(
-        "Las conclusiones finales se generarán a partir de "
-        "los hallazgos obtenidos durante el EDA."
-    )
-
-
 # ==========================================================
 # ENRUTAMIENTO PRINCIPAL
 # ==========================================================
