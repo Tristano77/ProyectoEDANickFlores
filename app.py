@@ -250,6 +250,27 @@ def preparar_numericas_para_graficos(df):
     return datos, numericas
 
 
+
+def preparar_datos_churn(df):
+    """
+    Prepara una copia del DataFrame para el análisis bivariado
+    de variables numéricas frente a Churn.
+
+    TotalCharges se convierte temporalmente a numérico si existe.
+    Churn se conserva en su representación categórica.
+    """
+
+    datos = df.copy()
+
+    if "TotalCharges" in datos.columns:
+        datos["TotalCharges"] = pd.to_numeric(
+            datos["TotalCharges"],
+            errors="coerce"
+        )
+
+    return datos
+
+
 # ==========================================================
 # MÓDULO 1 - HOME
 # ==========================================================
@@ -1641,12 +1662,284 @@ def eda():
             )
 
     # ==========================================================
+    # ÍTEM 7 - ANÁLISIS BIVARIADO: NUMÉRICA VS CHURN
+    # ==========================================================
+
+    with tabs[6]:
+
+        st.subheader("7. Análisis bivariado: variables numéricas vs Churn")
+
+        st.markdown(
+            """
+            En este apartado se estudia la relación entre las variables
+            numéricas y **Churn**, comparando el comportamiento de los
+            clientes que permanecen con aquellos que abandonan el servicio.
+
+            Se utilizan gráficos de distribución y medidas estadísticas
+            agrupadas por Churn para identificar diferencias entre ambos
+            grupos.
+            """
+        )
+
+        st.divider()
+
+        datos_churn = preparar_datos_churn(df)
+
+        if "Churn" not in datos_churn.columns:
+
+            st.error(
+                "No se encontró la variable objetivo `Churn` en el dataset."
+            )
+
+        else:
+
+            numericas_churn = datos_churn.select_dtypes(
+                include=np.number
+            ).columns.tolist()
+
+            if not numericas_churn:
+
+                st.warning(
+                    "No se encontraron variables numéricas para comparar "
+                    "con Churn."
+                )
+
+            else:
+
+                variable_num = st.selectbox(
+                    "Seleccione una variable numérica",
+                    numericas_churn,
+                    key="eda_bivariado_numerica_churn"
+                )
+
+                # --------------------------------------------------
+                # Distribución por Churn
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📊 Distribución según Churn"
+                )
+
+                datos_plot = datos_churn[
+                    [variable_num, "Churn"]
+                ].dropna()
+
+                fig, ax = plt.subplots(figsize=(10, 5))
+
+                sns.histplot(
+                    data=datos_plot,
+                    x=variable_num,
+                    hue="Churn",
+                    kde=True,
+                    bins=30,
+                    element="step",
+                    stat="density",
+                    common_norm=False,
+                    ax=ax
+                )
+
+                ax.set_title(
+                    f"{variable_num} según Churn"
+                )
+                ax.set_xlabel(variable_num)
+                ax.set_ylabel("Densidad")
+
+                fig.tight_layout()
+                st.pyplot(fig)
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Boxplot
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📦 Comparación mediante boxplot"
+                )
+
+                fig2, ax2 = plt.subplots(figsize=(9, 5))
+
+                sns.boxplot(
+                    data=datos_plot,
+                    x="Churn",
+                    y=variable_num,
+                    ax=ax2
+                )
+
+                ax2.set_title(
+                    f"{variable_num} según condición de Churn"
+                )
+                ax2.set_xlabel("Churn")
+                ax2.set_ylabel(variable_num)
+
+                fig2.tight_layout()
+                st.pyplot(fig2)
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Estadísticas agrupadas
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📋 Estadísticas por grupo de Churn"
+                )
+
+                estadisticas_churn = (
+                    datos_plot
+                    .groupby("Churn")[variable_num]
+                    .agg(
+                        ["count", "mean", "median", "std", "min", "max"]
+                    )
+                    .round(2)
+                    .reset_index()
+                )
+
+                estadisticas_churn.columns = [
+                    "Churn",
+                    "Cantidad",
+                    "Media",
+                    "Mediana",
+                    "Desv. estándar",
+                    "Mínimo",
+                    "Máximo"
+                ]
+
+                st.dataframe(
+                    estadisticas_churn,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Diferencia de medias
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 🔎 Comparación entre grupos"
+                )
+
+                grupos = (
+                    datos_plot
+                    .groupby("Churn")[variable_num]
+                    .agg(["count", "mean", "median"])
+                )
+
+                if "Yes" in grupos.index and "No" in grupos.index:
+
+                    media_no = grupos.loc["No", "mean"]
+                    media_yes = grupos.loc["Yes", "mean"]
+
+                    mediana_no = grupos.loc["No", "median"]
+                    mediana_yes = grupos.loc["Yes", "median"]
+
+                    diferencia_media = media_yes - media_no
+                    diferencia_porcentual = (
+                        diferencia_media / media_no * 100
+                        if media_no != 0
+                        else np.nan
+                    )
+
+                    c1, c2, c3 = st.columns(3)
+
+                    with c1:
+                        st.metric(
+                            "Media Churn = No",
+                            f"{media_no:,.2f}"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Media Churn = Yes",
+                            f"{media_yes:,.2f}"
+                        )
+
+                    with c3:
+                        st.metric(
+                            "Diferencia de medias",
+                            f"{diferencia_media:,.2f}"
+                        )
+
+                    st.write(
+                        f"La mediana para clientes con **Churn = No** "
+                        f"es **{mediana_no:,.2f}**, mientras que para "
+                        f"**Churn = Yes** es **{mediana_yes:,.2f}**."
+                    )
+
+                    if not np.isnan(diferencia_porcentual):
+
+                        st.write(
+                            f"La diferencia entre las medias representa "
+                            f"aproximadamente un "
+                            f"**{abs(diferencia_porcentual):.2f}%** "
+                            f"respecto a la media del grupo Churn = No."
+                        )
+
+                    st.info(
+                        "Esta comparación es descriptiva: una diferencia "
+                        "entre grupos no implica por sí sola causalidad."
+                    )
+
+                else:
+
+                    st.info(
+                        "No se encontraron simultáneamente las categorías "
+                        "`Yes` y `No` en Churn para realizar la comparación."
+                    )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Resumen de todas las variables numéricas
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 📈 Resumen de medias por Churn"
+                )
+
+                resumen_bivariado = []
+
+                for variable in numericas_churn:
+
+                    tmp = datos_churn[
+                        [variable, "Churn"]
+                    ].dropna()
+
+                    medias = tmp.groupby("Churn")[variable].mean()
+
+                    resumen_bivariado.append({
+                        "Variable": variable,
+                        "Media Churn = No": medias.get("No", np.nan),
+                        "Media Churn = Yes": medias.get("Yes", np.nan),
+                        "Diferencia (Yes - No)": (
+                            medias.get("Yes", np.nan)
+                            - medias.get("No", np.nan)
+                        )
+                    })
+
+                resumen_bivariado = pd.DataFrame(
+                    resumen_bivariado
+                ).round(2)
+
+                st.dataframe(
+                    resumen_bivariado,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                st.caption(
+                    "La tabla resume las diferencias descriptivas de las "
+                    "medias entre clientes con y sin Churn. No constituye "
+                    "una prueba estadística de significancia."
+                )
+
+    # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
-    # Los tabs restantes se mantienen vacíos temporalmente.
-    # Se implementarán uno por uno para evitar duplicaciones
-    # de mensajes y conservar una estructura limpia.
+    # Los siguientes tabs se implementarán progresivamente.
 
 
 
