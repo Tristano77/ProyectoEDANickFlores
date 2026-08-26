@@ -10,8 +10,8 @@ import seaborn as sns
 # ==========================================================
 
 st.set_page_config(
-    page_title="Telco Customer Churn - EDA",
-    page_icon="📊",
+    page_title="PROY MOD2 - Telco Customer Churn - EDA",
+    page_icon="🐍",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -30,8 +30,7 @@ opcion = st.sidebar.selectbox(
     (
         "Home",
         "Carga del dataset",
-        "EDA",
-        "Conclusiones"
+        "EDA"
     )
 )
 
@@ -276,7 +275,7 @@ def preparar_datos_churn(df):
 # ==========================================================
 
 def home():
-
+    st.image("EDA.png", width=250)
     st.title("📊 Telco Customer Churn - Análisis Exploratorio de Datos")
 
     st.markdown("---")
@@ -322,12 +321,12 @@ def home():
 
     st.markdown("---")
 
-    st.header("👤 Información del estudiante")
+    st.header("Información del estudiante")
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.write("**Nombre:** Jhon Doe")
+        st.write("**Nombre:** Nick Flores Pérez")
 
     with c2:
         st.write("**Especialización:** Python for Analytics")
