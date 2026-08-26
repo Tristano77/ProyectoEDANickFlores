@@ -20,7 +20,7 @@ st.set_page_config(
 # ==========================================================
 # MENÚ LATERAL
 # ==========================================================
-
+st.image("Python_logo.png", width=250)
 st.sidebar.title("📊 Telco Customer Churn")
 
 st.sidebar.markdown("---")
@@ -275,7 +275,7 @@ def preparar_datos_churn(df):
 # ==========================================================
 
 def home():
-    st.image("EDA.png", width=250)
+    st.image("EDA.png", width=750)
     st.title("📊 Telco Customer Churn - Análisis Exploratorio de Datos")
 
     st.markdown("---")
