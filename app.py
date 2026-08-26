@@ -794,7 +794,8 @@ def eda():
 
             seleccion = st.selectbox(
                 "Seleccione una variable para analizar",
-                variables_numericas
+                variables_numericas,
+                key="eda_estadistica_variable"
             )
 
             serie = df[seleccion].dropna()
@@ -1170,7 +1171,8 @@ def eda():
         # ------------------------------------------------------
 
         revisar = st.checkbox(
-            "Mostrar registros que contienen valores faltantes"
+            "Mostrar registros que contienen valores faltantes",
+            key="eda_valores_faltantes_checkbox"
         )
 
         if revisar:
@@ -1244,7 +1246,8 @@ def eda():
             seleccionadas = st.multiselect(
                 "Seleccione una o más variables numéricas",
                 numericas_graficos,
-                default=numericas_graficos[:1]
+                default=numericas_graficos[:1],
+                key="eda_distribuciones_numericas"
             )
 
             if not seleccionadas:
@@ -1668,10 +1671,6 @@ def eda():
         # ------------------------------------------------------
         # Control opcional para revisar registros
         # ------------------------------------------------------
-
-        revisar = st.checkbox(
-            "Mostrar registros que contienen valores faltantes"
-        )
 
         if revisar:
 
