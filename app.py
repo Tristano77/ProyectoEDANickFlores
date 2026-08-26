@@ -2573,7 +2573,7 @@ def eda():
         st.write(
             """
             El análisis dinámico permite explorar diferentes variables
-            sin modificar el código de la aplicación. La selección de
+             de la aplicación. La selección de
             columnas mediante `multiselect`, el tipo de análisis mediante
             `selectbox` y el número de categorías mediante `slider`
             permiten adaptar el EDA a diferentes preguntas analíticas.
@@ -2868,31 +2868,114 @@ def eda():
             # 5. Resumen ejecutivo
             # --------------------------------------------------
 
-            st.markdown("#### 💡 Resumen ejecutivo")
+            st.markdown("#### 🎯 5 conclusiones para la toma de decisiones")
 
-            st.write(
+            st.markdown(
                 f"""
-                El dataset contiene **{total_clientes:,} clientes**,
-                de los cuales **{churn_yes:,} presentan Churn**, lo que
-                representa una tasa global de abandono de
-                **{tasa_churn:.2f}%**.
+                **1. El nivel de Churn requiere atención prioritaria.**  
+                La tasa global de abandono es de **{tasa_churn:.2f}%**,
+                equivalente a **{churn_yes:,} clientes**.
 
-                Los análisis univariados permitieron caracterizar las
-                distribuciones y categorías del dataset, mientras que
-                los análisis bivariados permitieron comparar el
-                comportamiento de los clientes según su condición de
-                Churn.
+                **Decisión:** establecer la reducción de Churn como un
+                indicador principal para evaluar las estrategias de
+                retención.
                 """
             )
 
-            st.warning(
+            if resumen_categorico:
+
+                principal_cat = resumen_categorico.iloc[0]
+
+                st.markdown(
+                    f"""
+                    **2. Existen segmentos con mayor riesgo de abandono.**  
+                    El segmento **{principal_cat['Variable']} =
+                    {principal_cat['Categoría']}** presenta la mayor tasa
+                    de Churn identificada, con
+                    **{principal_cat['Tasa Churn (%)']:.2f}%**.
+
+                    **Decisión:** priorizar este segmento en las campañas
+                    de retención y evaluar sus características antes de
+                    aplicar acciones generales.
+                    """
+                )
+
+            else:
+
+                st.markdown(
+                    """
+                    **2. Las variables categóricas permiten segmentar
+                    el riesgo de abandono.**
+
+                    **Decisión:** utilizar las diferencias observadas
+                    entre categorías para definir segmentos de clientes
+                    y priorizar posteriormente los de mayor riesgo.
+                    """
+                )
+
+            if resumen_numerico:
+
+                principal_num = resumen_numerico.iloc[0]
+
+                st.markdown(
+                    f"""
+                    **3. Las variables numéricas presentan diferencias
+                    entre clientes con y sin Churn.**  
+                    La variable **{principal_num['Variable']}** presenta
+                    la mayor diferencia absoluta de medias, de
+                    **{abs(principal_num['Diferencia']):,.2f}**.
+
+                    **Decisión:** incorporar esta variable en la
+                    segmentación y profundizar su comportamiento antes
+                    de definir políticas de retención.
+                    """
+                )
+
+            else:
+
+                st.markdown(
+                    """
+                    **3. Las variables numéricas deben incorporarse a la
+                    segmentación del riesgo.**
+
+                    **Decisión:** complementar este análisis con métricas
+                    de comportamiento para priorizar acciones de
+                    retención.
+                    """
+                )
+
+            st.markdown(
                 """
-                Los hallazgos de esta sección son de carácter
-                **exploratorio y descriptivo**. No deben interpretarse
-                como relaciones causales ni como evidencia de
-                significancia estadística. Para validar asociaciones
-                sería necesario complementar el EDA con pruebas
-                estadísticas y, posteriormente, modelos predictivos.
+                **4. La estrategia de retención debe ser segmentada.**  
+                Las diferencias observadas muestran que el comportamiento
+                de los clientes no es homogéneo.
+
+                **Decisión:** diseñar acciones diferenciadas según las
+                características del cliente y su nivel de riesgo,
+                evitando una estrategia única para toda la cartera.
+                """
+            )
+
+            st.markdown(
+                """
+                **5. Los hallazgos del EDA deben servir como base para
+                analítica predictiva.**  
+                El análisis exploratorio permite identificar variables
+                y segmentos relevantes, pero no demuestra causalidad.
+
+                **Decisión:** complementar estos resultados con pruebas
+                estadísticas y desarrollar posteriormente un modelo
+                predictivo de Churn que permita priorizar clientes con
+                mayor probabilidad de abandono.
+                """
+            )
+
+            st.success(
+                """
+                **Prioridad de negocio:** identificar segmentos de alto
+                riesgo, focalizar las acciones de retención y medir
+                continuamente la evolución de la tasa de Churn para
+                evaluar el impacto de las decisiones implementadas.
                 """
             )
 
