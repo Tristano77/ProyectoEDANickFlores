@@ -22,7 +22,6 @@ st.set_page_config(
 # ==========================================================
 
 st.sidebar.title("📊 Telco Customer Churn")
-st.image("Python_logo.png", width=250)
 st.sidebar.markdown("---")
 
 opcion = st.sidebar.selectbox(
