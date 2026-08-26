@@ -1435,157 +1435,103 @@ def eda():
                 )
 
     # ==========================================================
-    # ÍTEMS PENDIENTES
+    # ÍTEM 6 - ANÁLISIS DE VARIABLES CATEGÓRICAS
     # ==========================================================
 
-    nombres_pendientes = [
-        "Análisis de variables categóricas",
-        "Análisis bivariado: numérico vs Churn",
-        "Análisis bivariado: categórico vs Churn",
-        "Análisis basado en parámetros seleccionados",
-        "Hallazgos clave"
-    ]
+    with tabs[5]:
 
-    for i in range(5, 10):
-        with tabs[i]:
-            st.subheader(
-                f"{i + 1}. {nombres_pendientes[i - 5]}"
-            )
-            st.info(
-                "Este ítem se implementará en el siguiente paso."
-            )
- # ==========================================================
-
-    with tabs[3]:
-
-        st.subheader("4. Análisis de valores faltantes")
+        st.subheader("6. Análisis de variables categóricas")
 
         st.markdown(
             """
-            En esta etapa se identifican los valores faltantes del
-            dataset y se calcula su proporción respecto al total de
-            registros.
-
-            Además de los valores `NaN` detectados directamente por
-            Pandas, se revisan cadenas vacías y cadenas que contienen
-            únicamente espacios, ya que pueden representar valores
-            faltantes encubiertos.
+            Se analizan las variables categóricas mediante tablas de
+            frecuencia y gráficos de barras. El objetivo es conocer
+            cómo se distribuyen las categorías y detectar posibles
+            categorías dominantes o poco frecuentes.
             """
         )
 
         st.divider()
 
-        resumen_faltantes = analizar_valores_faltantes(df)
+        _, categoricas = clasificar_variables(df)
 
-        total_nulos = int(
-            resumen_faltantes["Nulos (NaN)"].sum()
-        )
+        # Excluir identificadores si existen
+        categoricas_analisis = [
+            col for col in categoricas
+            if col not in ["customerID"]
+        ]
 
-        total_vacios = int(
-            resumen_faltantes["Cadenas vacías"].sum()
-        )
+        if not categoricas_analisis:
 
-        total_espacios = int(
-            resumen_faltantes["Solo espacios"].sum()
-        )
-
-        total_faltantes = int(
-            resumen_faltantes["Total faltantes detectados"].sum()
-        )
-
-        # ------------------------------------------------------
-        # Métricas
-        # ------------------------------------------------------
-
-        c1, c2, c3, c4 = st.columns(4)
-
-        with c1:
-            st.metric(
-                "Nulos (NaN)",
-                f"{total_nulos:,}"
-            )
-
-        with c2:
-            st.metric(
-                "Cadenas vacías",
-                f"{total_vacios:,}"
-            )
-
-        with c3:
-            st.metric(
-                "Solo espacios",
-                f"{total_espacios:,}"
-            )
-
-        with c4:
-            st.metric(
-                "Total detectado",
-                f"{total_faltantes:,}"
-            )
-
-        st.divider()
-
-        # ------------------------------------------------------
-        # Tabla completa
-        # ------------------------------------------------------
-
-        st.markdown(
-            "#### 📋 Detalle de valores faltantes por variable"
-        )
-
-        st.dataframe(
-            resumen_faltantes.sort_values(
-                "Total faltantes detectados",
-                ascending=False
-            ),
-            use_container_width=True,
-            hide_index=True
-        )
-
-        st.divider()
-
-        # ------------------------------------------------------
-        # Variables afectadas
-        # ------------------------------------------------------
-
-        afectadas = resumen_faltantes[
-            resumen_faltantes["Total faltantes detectados"] > 0
-        ].copy()
-
-        if afectadas.empty:
-
-            st.success(
-                "✅ No se encontraron valores faltantes ni cadenas "
-                "vacías en las variables analizadas."
+            st.warning(
+                "No se encontraron variables categóricas "
+                "disponibles para analizar."
             )
 
         else:
 
-            st.markdown(
-                "#### ⚠️ Variables con valores faltantes"
+            seleccion_cat = st.selectbox(
+                "Seleccione una variable categórica",
+                categoricas_analisis,
+                key="eda_categorica_variable"
             )
 
-            st.write(
-                f"Se encontraron **{len(afectadas)} variables** "
-                "con algún tipo de valor faltante."
+            serie_cat = df[seleccion_cat].astype("string")
+
+            frecuencia = (
+                serie_cat
+                .fillna("Valor faltante")
+                .value_counts(dropna=False)
+                .reset_index()
             )
 
+            frecuencia.columns = [
+                "Categoría",
+                "Frecuencia"
+            ]
+
+            frecuencia["Porcentaje (%)"] = (
+                frecuencia["Frecuencia"]
+                / frecuencia["Frecuencia"].sum()
+                * 100
+            ).round(2)
+
             # --------------------------------------------------
-            # Gráfico
+            # Tabla de frecuencias
             # --------------------------------------------------
+
+            st.markdown("#### 📋 Tabla de frecuencias")
+
+            st.dataframe(
+                frecuencia,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.divider()
+
+            # --------------------------------------------------
+            # Gráfico de barras
+            # --------------------------------------------------
+
+            st.markdown("#### 📊 Distribución de categorías")
 
             fig, ax = plt.subplots(figsize=(10, 5))
 
-            ax.bar(
-                afectadas["Variable"],
-                afectadas["Total faltantes detectados"]
+            sns.countplot(
+                data=df.assign(
+                    _categoria=serie_cat.fillna("Valor faltante")
+                ),
+                x="_categoria",
+                order=frecuencia["Categoría"].tolist(),
+                ax=ax
             )
 
             ax.set_title(
-                "Valores faltantes por variable"
+                f"Distribución de {seleccion_cat}"
             )
-            ax.set_xlabel("Variable")
-            ax.set_ylabel("Cantidad")
+            ax.set_xlabel(seleccion_cat)
+            ax.set_ylabel("Frecuencia")
 
             plt.xticks(
                 rotation=45,
@@ -1593,136 +1539,114 @@ def eda():
             )
 
             fig.tight_layout()
-
             st.pyplot(fig)
-
-            # --------------------------------------------------
-            # Porcentaje
-            # --------------------------------------------------
-
-            st.markdown(
-                "#### 📊 Porcentaje de faltantes"
-            )
-
-            fig2, ax2 = plt.subplots(figsize=(10, 5))
-
-            ax2.bar(
-                afectadas["Variable"],
-                afectadas["Porcentaje (%)"]
-            )
-
-            ax2.set_title(
-                "Porcentaje de registros faltantes por variable"
-            )
-            ax2.set_xlabel("Variable")
-            ax2.set_ylabel("Porcentaje (%)")
-
-            plt.xticks(
-                rotation=45,
-                ha="right"
-            )
-
-            fig2.tight_layout()
-
-            st.pyplot(fig2)
 
             st.divider()
 
             # --------------------------------------------------
-            # Interpretación
+            # Categoría predominante
+            # --------------------------------------------------
+
+            categoria_mayor = frecuencia.iloc[0]
+
+            st.markdown("#### 💡 Interpretación")
+
+            st.write(
+                f"La categoría más frecuente de **{seleccion_cat}** "
+                f"es **{categoria_mayor['Categoría']}**, con "
+                f"**{int(categoria_mayor['Frecuencia']):,} "
+                f"registros**, equivalente al "
+                f"**{categoria_mayor['Porcentaje (%)']:.2f}%** "
+                "del total."
+            )
+
+            if len(frecuencia) == 2:
+
+                diferencia = abs(
+                    frecuencia.iloc[0]["Porcentaje (%)"]
+                    - frecuencia.iloc[1]["Porcentaje (%)"]
+                )
+
+                if diferencia < 10:
+                    st.info(
+                        "Las dos categorías presentan una distribución "
+                        "relativamente equilibrada."
+                    )
+                else:
+                    st.info(
+                        "Existe una diferencia apreciable en la "
+                        "frecuencia de las dos categorías."
+                    )
+
+            elif len(frecuencia) > 2:
+
+                porcentaje_mayor = categoria_mayor[
+                    "Porcentaje (%)"
+                ]
+
+                if porcentaje_mayor >= 70:
+                    st.warning(
+                        "Una categoría concentra una proporción "
+                        "elevada de los registros. Esto debe "
+                        "considerarse al interpretar posteriormente "
+                        "su relación con Churn."
+                    )
+
+            st.divider()
+
+            # --------------------------------------------------
+            # Comparación rápida de varias categóricas
             # --------------------------------------------------
 
             st.markdown(
-                "#### 💡 Interpretación"
+                "#### 🔎 Resumen de variables categóricas"
             )
 
-            variable_mayor = afectadas.loc[
-                afectadas["Total faltantes detectados"].idxmax()
-            ]
+            resumen_categoricas = []
 
-            st.write(
-                f"La variable con mayor cantidad de valores "
-                f"faltantes detectados es **"
-                f"{variable_mayor['Variable']}**, con "
-                f"**{int(variable_mayor['Total faltantes detectados']):,} "
-                f"registros**, equivalentes al "
-                f"**{variable_mayor['Porcentaje (%)']:.2f}%** "
-                "de sus observaciones."
-            )
+            for variable in categoricas_analisis:
 
-            if total_nulos > 0:
-                st.info(
-                    "Los valores `NaN` son reconocidos directamente "
-                    "por Pandas y deberán evaluarse antes de aplicar "
-                    "estadísticas o visualizaciones que dependan de "
-                    "la variable afectada."
+                valores = (
+                    df[variable]
+                    .value_counts(dropna=False)
                 )
 
-            if total_vacios + total_espacios > 0:
-                st.warning(
-                    "También se detectaron valores faltantes "
-                    "representados mediante texto vacío o espacios. "
-                    "Estos valores deben normalizarse durante la "
-                    "etapa de limpieza."
-                )
-
-        st.divider()
-
-        # ------------------------------------------------------
-        # Control opcional para revisar registros
-        # ------------------------------------------------------
-
-        if revisar:
-
-            mascara = df.isna().any(axis=1)
-
-            # Incorporar cadenas vacías / espacios en columnas de texto
-            for columna in df.select_dtypes(
-                include=["object", "category"]
-            ).columns:
-
-                serie = df[columna].astype("string")
-
-                mascara = (
-                    mascara
-                    | serie.eq("").fillna(False)
-                    | serie.str.strip().eq("").fillna(False)
-                )
-
-            registros_faltantes = df.loc[mascara]
-
-            st.write(
-                f"Registros encontrados: "
-                f"**{len(registros_faltantes):,}**"
-            )
+                resumen_categoricas.append({
+                    "Variable": variable,
+                    "Categorías": df[variable].nunique(
+                        dropna=True
+                    ),
+                    "Categoría más frecuente": (
+                        str(valores.index[0])
+                        if len(valores) > 0
+                        else "Sin datos"
+                    ),
+                    "Frecuencia máxima": (
+                        int(valores.iloc[0])
+                        if len(valores) > 0
+                        else 0
+                    )
+                })
 
             st.dataframe(
-                registros_faltantes,
+                pd.DataFrame(resumen_categoricas),
                 use_container_width=True,
                 hide_index=True
+            )
+
+            st.caption(
+                "Este resumen permite identificar rápidamente "
+                "variables con pocas categorías y aquellas donde "
+                "una categoría concentra gran parte de los registros."
             )
 
     # ==========================================================
     # ÍTEMS PENDIENTES
     # ==========================================================
 
-    nombres_pendientes = [
-        "Distribución de variables numéricas",
-        "Análisis de variables categóricas",
-        "Análisis bivariado: numérico vs Churn",
-        "Análisis bivariado: categórico vs Churn",
-        "Análisis basado en parámetros seleccionados",
-        "Hallazgos clave"
-    ]
-
-    for i in range(4, 10):
-        with tabs[i]:
-            st.subheader(
-                f"{i + 1}. {nombres_pendientes[i - 4]}"
-            )
-            st.info(
-                "Este ítem se implementará en el siguiente paso."
-            )
+    # Los tabs restantes se mantienen vacíos temporalmente.
+    # Se implementarán uno por uno para evitar duplicaciones
+    # de mensajes y conservar una estructura limpia.
 
 
 
