@@ -230,11 +230,10 @@ proyecto/
 ├── app.py
 ├── requirements.txt
 ├── README.md
+├── TelcoCustomerChurn.csv
+
 │
-├── data/
-│   └── dataset.csv
-│
-└── screenshots/
+└── Capturas/
     ├── home.png
     ├── informacion_general.png
     ├── estadisticas_descriptivas.png
