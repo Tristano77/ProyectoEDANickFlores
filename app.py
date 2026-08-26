@@ -224,6 +224,32 @@ def analizar_valores_faltantes(df):
     return resumen
 
 
+
+def preparar_numericas_para_graficos(df):
+    """
+    Obtiene las variables numéricas disponibles para el análisis
+    de distribución.
+
+    También intenta convertir TotalCharges a numérico sin modificar
+    el DataFrame original. Esto permite visualizarla correctamente
+    sin alterar todavía el dataset almacenado en session_state.
+    """
+
+    datos = df.copy()
+
+    if "TotalCharges" in datos.columns:
+        datos["TotalCharges"] = pd.to_numeric(
+            datos["TotalCharges"],
+            errors="coerce"
+        )
+
+    numericas = datos.select_dtypes(
+        include=np.number
+    ).columns.tolist()
+
+    return datos, numericas
+
+
 # ==========================================================
 # MÓDULO 1 - HOME
 # ==========================================================
@@ -926,6 +952,506 @@ def eda():
     # ==========================================================
     # ÍTEM 4 - VALORES FALTANTES
     # ==========================================================
+
+    with tabs[3]:
+
+        st.subheader("4. Análisis de valores faltantes")
+
+        st.markdown(
+            """
+            En esta etapa se identifican los valores faltantes del
+            dataset y se calcula su proporción respecto al total de
+            registros.
+
+            Además de los valores `NaN` detectados directamente por
+            Pandas, se revisan cadenas vacías y cadenas que contienen
+            únicamente espacios, ya que pueden representar valores
+            faltantes encubiertos.
+            """
+        )
+
+        st.divider()
+
+        resumen_faltantes = analizar_valores_faltantes(df)
+
+        total_nulos = int(
+            resumen_faltantes["Nulos (NaN)"].sum()
+        )
+
+        total_vacios = int(
+            resumen_faltantes["Cadenas vacías"].sum()
+        )
+
+        total_espacios = int(
+            resumen_faltantes["Solo espacios"].sum()
+        )
+
+        total_faltantes = int(
+            resumen_faltantes["Total faltantes detectados"].sum()
+        )
+
+        # ------------------------------------------------------
+        # Métricas
+        # ------------------------------------------------------
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+            st.metric(
+                "Nulos (NaN)",
+                f"{total_nulos:,}"
+            )
+
+        with c2:
+            st.metric(
+                "Cadenas vacías",
+                f"{total_vacios:,}"
+            )
+
+        with c3:
+            st.metric(
+                "Solo espacios",
+                f"{total_espacios:,}"
+            )
+
+        with c4:
+            st.metric(
+                "Total detectado",
+                f"{total_faltantes:,}"
+            )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Tabla completa
+        # ------------------------------------------------------
+
+        st.markdown(
+            "#### 📋 Detalle de valores faltantes por variable"
+        )
+
+        st.dataframe(
+            resumen_faltantes.sort_values(
+                "Total faltantes detectados",
+                ascending=False
+            ),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Variables afectadas
+        # ------------------------------------------------------
+
+        afectadas = resumen_faltantes[
+            resumen_faltantes["Total faltantes detectados"] > 0
+        ].copy()
+
+        if afectadas.empty:
+
+            st.success(
+                "✅ No se encontraron valores faltantes ni cadenas "
+                "vacías en las variables analizadas."
+            )
+
+        else:
+
+            st.markdown(
+                "#### ⚠️ Variables con valores faltantes"
+            )
+
+            st.write(
+                f"Se encontraron **{len(afectadas)} variables** "
+                "con algún tipo de valor faltante."
+            )
+
+            # --------------------------------------------------
+            # Gráfico
+            # --------------------------------------------------
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+
+            ax.bar(
+                afectadas["Variable"],
+                afectadas["Total faltantes detectados"]
+            )
+
+            ax.set_title(
+                "Valores faltantes por variable"
+            )
+            ax.set_xlabel("Variable")
+            ax.set_ylabel("Cantidad")
+
+            plt.xticks(
+                rotation=45,
+                ha="right"
+            )
+
+            fig.tight_layout()
+
+            st.pyplot(fig)
+
+            # --------------------------------------------------
+            # Porcentaje
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 📊 Porcentaje de faltantes"
+            )
+
+            fig2, ax2 = plt.subplots(figsize=(10, 5))
+
+            ax2.bar(
+                afectadas["Variable"],
+                afectadas["Porcentaje (%)"]
+            )
+
+            ax2.set_title(
+                "Porcentaje de registros faltantes por variable"
+            )
+            ax2.set_xlabel("Variable")
+            ax2.set_ylabel("Porcentaje (%)")
+
+            plt.xticks(
+                rotation=45,
+                ha="right"
+            )
+
+            fig2.tight_layout()
+
+            st.pyplot(fig2)
+
+            st.divider()
+
+            # --------------------------------------------------
+            # Interpretación
+            # --------------------------------------------------
+
+            st.markdown(
+                "#### 💡 Interpretación"
+            )
+
+            variable_mayor = afectadas.loc[
+                afectadas["Total faltantes detectados"].idxmax()
+            ]
+
+            st.write(
+                f"La variable con mayor cantidad de valores "
+                f"faltantes detectados es **"
+                f"{variable_mayor['Variable']}**, con "
+                f"**{int(variable_mayor['Total faltantes detectados']):,} "
+                f"registros**, equivalentes al "
+                f"**{variable_mayor['Porcentaje (%)']:.2f}%** "
+                "de sus observaciones."
+            )
+
+            if total_nulos > 0:
+                st.info(
+                    "Los valores `NaN` son reconocidos directamente "
+                    "por Pandas y deberán evaluarse antes de aplicar "
+                    "estadísticas o visualizaciones que dependan de "
+                    "la variable afectada."
+                )
+
+            if total_vacios + total_espacios > 0:
+                st.warning(
+                    "También se detectaron valores faltantes "
+                    "representados mediante texto vacío o espacios. "
+                    "Estos valores deben normalizarse durante la "
+                    "etapa de limpieza."
+                )
+
+        st.divider()
+
+        # ------------------------------------------------------
+        # Control opcional para revisar registros
+        # ------------------------------------------------------
+
+        revisar = st.checkbox(
+            "Mostrar registros que contienen valores faltantes"
+        )
+
+        if revisar:
+
+            mascara = df.isna().any(axis=1)
+
+            # Incorporar cadenas vacías / espacios en columnas de texto
+            for columna in df.select_dtypes(
+                include=["object", "category"]
+            ).columns:
+
+                serie = df[columna].astype("string")
+
+                mascara = (
+                    mascara
+                    | serie.eq("").fillna(False)
+                    | serie.str.strip().eq("").fillna(False)
+                )
+
+            registros_faltantes = df.loc[mascara]
+
+            st.write(
+                f"Registros encontrados: "
+                f"**{len(registros_faltantes):,}**"
+            )
+
+            st.dataframe(
+                registros_faltantes,
+                use_container_width=True,
+                hide_index=True
+            )
+
+    # ==========================================================
+    # ÍTEM 5 - DISTRIBUCIÓN DE VARIABLES NUMÉRICAS
+    # ==========================================================
+
+    with tabs[4]:
+
+        st.subheader("5. Distribución de variables numéricas")
+
+        st.markdown(
+            """
+            En este apartado se analiza la distribución de las
+            variables numéricas mediante **histogramas y boxplots**.
+
+            Estas visualizaciones permiten observar la concentración
+            de los datos, su dispersión, posibles asimetrías y la
+            presencia visual de valores atípicos.
+            """
+        )
+
+        st.divider()
+
+        datos_graficos, numericas_graficos = (
+            preparar_numericas_para_graficos(df)
+        )
+
+        if not numericas_graficos:
+
+            st.warning(
+                "No se encontraron variables numéricas disponibles "
+                "para realizar el análisis."
+            )
+
+        else:
+
+            # ------------------------------------------------------
+            # Selector de variables
+            # ------------------------------------------------------
+
+            seleccionadas = st.multiselect(
+                "Seleccione una o más variables numéricas",
+                numericas_graficos,
+                default=numericas_graficos[:1]
+            )
+
+            if not seleccionadas:
+
+                st.info(
+                    "Seleccione al menos una variable para generar "
+                    "las visualizaciones."
+                )
+
+            else:
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Histogramas
+                # --------------------------------------------------
+
+                st.markdown("#### 📊 Histogramas")
+
+                for variable in seleccionadas:
+
+                    serie = datos_graficos[variable].dropna()
+
+                    if serie.empty:
+                        st.warning(
+                            f"No existen valores válidos para "
+                            f"`{variable}`."
+                        )
+                        continue
+
+                    fig, ax = plt.subplots(figsize=(10, 4))
+
+                    sns.histplot(
+                        data=datos_graficos,
+                        x=variable,
+                        bins=30,
+                        kde=True,
+                        ax=ax
+                    )
+
+                    ax.set_title(
+                        f"Distribución de {variable}"
+                    )
+                    ax.set_xlabel(variable)
+                    ax.set_ylabel("Frecuencia")
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+
+                    # Medidas básicas para interpretar la forma
+                    media = serie.mean()
+                    mediana = serie.median()
+                    desviacion = serie.std()
+
+                    c1, c2, c3 = st.columns(3)
+
+                    with c1:
+                        st.metric(
+                            "Media",
+                            f"{media:,.2f}"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Mediana",
+                            f"{mediana:,.2f}"
+                        )
+
+                    with c3:
+                        st.metric(
+                            "Desviación estándar",
+                            f"{desviacion:,.2f}"
+                        )
+
+                    if media > mediana:
+                        st.write(
+                            f"**Interpretación:** en `{variable}`, "
+                            "la media se encuentra por encima de la "
+                            "mediana, lo que puede ser consistente "
+                            "con una asimetría positiva."
+                        )
+
+                    elif media < mediana:
+                        st.write(
+                            f"**Interpretación:** en `{variable}`, "
+                            "la media se encuentra por debajo de la "
+                            "mediana, lo que puede ser consistente "
+                            "con una asimetría negativa."
+                        )
+
+                    else:
+                        st.write(
+                            f"**Interpretación:** en `{variable}`, "
+                            "la media y la mediana son similares, "
+                            "por lo que la distribución presenta "
+                            "mayor simetría alrededor del centro."
+                        )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Boxplots
+                # --------------------------------------------------
+
+                st.markdown("#### 📦 Boxplots")
+
+                for variable in seleccionadas:
+
+                    serie = datos_graficos[variable].dropna()
+
+                    if serie.empty:
+                        continue
+
+                    fig, ax = plt.subplots(figsize=(10, 3))
+
+                    sns.boxplot(
+                        x=serie,
+                        ax=ax
+                    )
+
+                    ax.set_title(
+                        f"Boxplot de {variable}"
+                    )
+                    ax.set_xlabel(variable)
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Comparación conjunta
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 🔍 Comparación de escalas"
+                )
+
+                st.dataframe(
+                    datos_graficos[seleccionadas]
+                    .describe()
+                    .T
+                    .round(2),
+                    use_container_width=True
+                )
+
+                st.info(
+                    "⚠️ Las variables pueden encontrarse en escalas "
+                    "muy diferentes. Por ello, los boxplots se "
+                    "presentan individualmente para evitar que una "
+                    "variable con valores grandes oculte la "
+                    "distribución de otra."
+                )
+
+                # --------------------------------------------------
+                # Nota sobre TotalCharges
+                # --------------------------------------------------
+
+                if "TotalCharges" in seleccionadas:
+                    st.warning(
+                        "`TotalCharges` estaba almacenada originalmente "
+                        "como texto (`object`). Para este gráfico se "
+                        "realizó una conversión temporal a numérico "
+                        "mediante `pd.to_numeric(..., errors='coerce')`. "
+                        "El DataFrame original no se modifica en este "
+                        "paso."
+                    )
+
+                st.divider()
+
+                # --------------------------------------------------
+                # Resumen automático
+                # --------------------------------------------------
+
+                st.markdown(
+                    "#### 💡 Resumen del análisis"
+                )
+
+                st.write(
+                    f"Se analizaron **{len(seleccionadas)} variable(s) "
+                    "numérica(s)**. Los histogramas permiten estudiar "
+                    "la forma de las distribuciones, mientras que los "
+                    "boxplots facilitan la identificación visual de "
+                    "posibles valores atípicos."
+                )
+
+    # ==========================================================
+    # ÍTEMS PENDIENTES
+    # ==========================================================
+
+    nombres_pendientes = [
+        "Análisis de variables categóricas",
+        "Análisis bivariado: numérico vs Churn",
+        "Análisis bivariado: categórico vs Churn",
+        "Análisis basado en parámetros seleccionados",
+        "Hallazgos clave"
+    ]
+
+    for i in range(5, 10):
+        with tabs[i]:
+            st.subheader(
+                f"{i + 1}. {nombres_pendientes[i - 5]}"
+            )
+            st.info(
+                "Este ítem se implementará en el siguiente paso."
+            )
+ # ==========================================================
 
     with tabs[3]:
 
