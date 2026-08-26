@@ -20,9 +20,9 @@ st.set_page_config(
 # ==========================================================
 # MENÚ LATERAL
 # ==========================================================
-st.image("Python_logo.png", width=250)
-st.sidebar.title("📊 Telco Customer Churn")
 
+st.sidebar.title("📊 Telco Customer Churn")
+st.image("Python_logo.png", width=250)
 st.sidebar.markdown("---")
 
 opcion = st.sidebar.selectbox(
