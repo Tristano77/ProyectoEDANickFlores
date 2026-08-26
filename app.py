@@ -106,6 +106,28 @@ def mostrar_resumen_dataset(df):
         st.metric("Valores nulos", int(df.isna().sum().sum()))
 
 
+
+def clasificar_variables(df):
+    """
+    Clasifica las variables según el tipo de dato almacenado
+    en el DataFrame.
+
+    Retorna:
+        numericas: lista de variables numéricas
+        categoricas: lista de variables categóricas
+    """
+
+    numericas = df.select_dtypes(
+        include=np.number
+    ).columns.tolist()
+
+    categoricas = df.select_dtypes(
+        include=["object", "category", "bool"]
+    ).columns.tolist()
+
+    return numericas, categoricas
+
+
 # ==========================================================
 # MÓDULO 1 - HOME
 # ==========================================================
@@ -348,12 +370,6 @@ def eda():
         f"{df.shape[1]} variables."
     )
 
-    st.info(
-        "Este módulo será desarrollado paso a paso. "
-        "Aquí se incorporarán los 10 ítems de EDA solicitados "
-        "en el caso de estudio."
-    )
-
     tabs = st.tabs([
         "1. Información general",
         "2. Variables",
@@ -367,22 +383,252 @@ def eda():
         "10. Hallazgos"
     ])
 
+    # ==========================================================
+    # ÍTEM 1
+    # ==========================================================
+
     with tabs[0]:
-        st.subheader("Información general del dataset")
+
+        st.subheader("1. Información general del dataset")
+
+        st.markdown(
+            """
+            En este apartado se revisa la estructura general del
+            dataset mediante sus dimensiones, tipos de datos y
+            cantidad de valores nulos.
+            """
+        )
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.metric("Filas", f"{df.shape[0]:,}")
+
+        with c2:
+            st.metric("Columnas", df.shape[1])
+
+        with c3:
+            st.metric(
+                "Valores nulos",
+                int(df.isna().sum().sum())
+            )
+
+        st.divider()
+
+        st.markdown("#### Tipos de datos y valores nulos")
+
+        resumen = pd.DataFrame({
+            "Variable": df.columns,
+            "Tipo de dato": df.dtypes.astype(str).values,
+            "Valores no nulos": df.notna().sum().values,
+            "Valores nulos": df.isna().sum().values
+        })
+
         st.dataframe(
-            pd.DataFrame({
-                "Variable": df.columns,
-                "Tipo": df.dtypes.astype(str).values,
-                "Nulos": df.isna().sum().values
-            }),
+            resumen,
             use_container_width=True,
             hide_index=True
         )
 
-    for i in range(1, 10):
+    # ==========================================================
+    # ÍTEM 2 - CLASIFICACIÓN DE VARIABLES
+    # ==========================================================
+
+    with tabs[1]:
+
+        st.subheader("2. Clasificación de variables")
+
+        st.markdown(
+            """
+            Las variables se clasifican automáticamente mediante una
+            **función personalizada** según el tipo de dato almacenado
+            en el DataFrame.
+
+            Esta clasificación permite diferenciar las variables que
+            serán analizadas mediante estadísticas numéricas de
+            aquellas que requieren análisis de frecuencias y
+            proporciones.
+            """
+        )
+
+        st.divider()
+
+        numericas, categoricas = clasificar_variables(df)
+
+        total_variables = len(df.columns)
+        total_numericas = len(numericas)
+        total_categoricas = len(categoricas)
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.metric(
+                "Total de variables",
+                total_variables
+            )
+
+        with c2:
+            st.metric(
+                "Variables numéricas",
+                total_numericas
+            )
+
+        with c3:
+            st.metric(
+                "Variables categóricas",
+                total_categoricas
+            )
+
+        st.divider()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.markdown("#### 🔢 Variables numéricas")
+
+            if numericas:
+                df_numericas = pd.DataFrame({
+                    "Variable": numericas,
+                    "Tipo de dato": [
+                        str(df[col].dtype) for col in numericas
+                    ]
+                })
+
+                st.dataframe(
+                    df_numericas,
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("No se encontraron variables numéricas.")
+
+        with col2:
+
+            st.markdown("#### 🔤 Variables categóricas")
+
+            if categoricas:
+                df_categoricas = pd.DataFrame({
+                    "Variable": categoricas,
+                    "Tipo de dato": [
+                        str(df[col].dtype) for col in categoricas
+                    ]
+                })
+
+                st.dataframe(
+                    df_categoricas,
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("No se encontraron variables categóricas.")
+
+        st.divider()
+
+        st.markdown("#### 📊 Distribución de la clasificación")
+
+        clasificacion = pd.DataFrame({
+            "Tipo de variable": [
+                "Numéricas",
+                "Categóricas"
+            ],
+            "Cantidad": [
+                total_numericas,
+                total_categoricas
+            ]
+        })
+
+        fig, ax = plt.subplots(figsize=(7, 4))
+
+        ax.bar(
+            clasificacion["Tipo de variable"],
+            clasificacion["Cantidad"]
+        )
+
+        ax.set_xlabel("Tipo de variable")
+        ax.set_ylabel("Cantidad")
+        ax.set_title("Cantidad de variables por tipo")
+
+        for i, valor in enumerate(clasificacion["Cantidad"]):
+            ax.text(
+                i,
+                valor,
+                str(valor),
+                ha="center",
+                va="bottom"
+            )
+
+        fig.tight_layout()
+        st.pyplot(fig)
+
+        st.divider()
+
+        st.markdown("#### 🔍 Exploración de variables categóricas")
+
+        mostrar_unicos = st.checkbox(
+            "Mostrar cantidad de valores únicos por variable categórica"
+        )
+
+        if mostrar_unicos and categoricas:
+
+            unicos = pd.DataFrame({
+                "Variable": categoricas,
+                "Valores únicos": [
+                    df[col].nunique(dropna=True)
+                    for col in categoricas
+                ]
+            }).sort_values(
+                "Valores únicos",
+                ascending=False
+            )
+
+            st.dataframe(
+                unicos,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        st.divider()
+
+        st.markdown("#### 💡 Interpretación")
+
+        st.write(
+            f"El dataset contiene **{total_numericas} variables "
+            f"numéricas** y **{total_categoricas} variables "
+            f"categóricas**, de un total de **{total_variables} "
+            f"variables**."
+        )
+
+        if "TotalCharges" in categoricas:
+            st.warning(
+                "⚠️ `TotalCharges` aparece como variable categórica "
+                "porque actualmente está almacenada como `object`. "
+                "Este comportamiento será revisado durante la etapa "
+                "de limpieza y transformación de datos."
+            )
+
+    # ==========================================================
+    # ÍTEMS PENDIENTES
+    # ==========================================================
+
+    nombres_pendientes = [
+        "Estadísticas descriptivas",
+        "Análisis de valores faltantes",
+        "Distribución de variables numéricas",
+        "Análisis de variables categóricas",
+        "Análisis bivariado: numérico vs Churn",
+        "Análisis bivariado: categórico vs Churn",
+        "Análisis basado en parámetros seleccionados",
+        "Hallazgos clave"
+    ]
+
+    for i in range(2, 10):
         with tabs[i]:
+            st.subheader(
+                f"{i + 1}. {nombres_pendientes[i - 2]}"
+            )
             st.info(
-                f"Ítem {i + 1}: se implementará en el siguiente paso."
+                "Este ítem se implementará en el siguiente paso."
             )
 
 
