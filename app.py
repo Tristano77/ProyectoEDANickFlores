@@ -2208,7 +2208,7 @@ def eda():
                             )
                         })
 
-                if not resumen_categorico.empty:
+                if len(resumen_categorico) > 0:
 
                     resumen_categorico = pd.DataFrame(
                         resumen_categorico
@@ -2734,7 +2734,7 @@ def eda():
                             "Diferencia": diferencia
                         })
 
-            if not resumen_numerico.empty:
+            if len(resumen_numerico) > 0:
 
                 resumen_numerico = pd.DataFrame(
                     resumen_numerico
